@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "ClientFlow WhatsApp CRM Sync",
+  "version": "1.0.0",
+  "description": "Automatically synchronize incoming and outgoing messages from web.whatsapp.com to your ClientFlow local CRM.",
+  "permissions": [],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
