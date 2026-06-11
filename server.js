@@ -49,7 +49,12 @@ let pendingOutbox = [];
 app.get('/api/clients', async (req, res) => {
   try {
     const clients = await getClients();
-    res.json(clients);
+    const sanitizedClients = clients.map(client => ({
+      ...client,
+      budget: client.budget !== undefined ? Number(client.budget) : 0,
+      source: client.source !== undefined ? client.source : 'Manual'
+    }));
+    res.json(sanitizedClients);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch clients", details: err.message });
   }
