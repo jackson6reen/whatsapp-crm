@@ -6,10 +6,8 @@ import {
   Phone, 
   Mail, 
   Building, 
-  Tag, 
   Plus, 
   MessageCircle, 
-  Clipboard,
   ExternalLink 
 } from 'lucide-react';
 
@@ -34,6 +32,22 @@ function ChatInbox({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeClient?.messages?.length, activeChatId]);
+
+  // Automatically mark messages as read when active chat is focused
+  useEffect(() => {
+    if (activeClient && activeClient.messages.some(m => m.sender === 'client' && !m.read)) {
+      const readMessages = activeClient.messages.map(m => 
+        m.sender === 'client' ? { ...m, read: true } : m
+      );
+      
+      // Update on server
+      fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: activeClient.id, messages: readMessages })
+      }).catch(err => console.error("Failed to mark messages as read:", err));
+    }
+  }, [activeChatId, activeClient?.messages?.length]);
 
   // Format time helpers
   const formatTime = (isoString) => {
@@ -66,7 +80,8 @@ function ChatInbox({
       const phoneMatch = c.phone.replace(/\D/g, '').includes(search);
       const companyMatch = c.company ? c.company.toLowerCase().includes(search) : false;
       const msgMatch = c.messages.some(m => m.body.toLowerCase().includes(search));
-      return nameMatch || phoneMatch || companyMatch || msgMatch;
+      const sourceMatch = c.source ? c.source.toLowerCase().includes(search) : false;
+      return nameMatch || phoneMatch || companyMatch || msgMatch || sourceMatch;
     })
     // Sort by last activity
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -91,7 +106,6 @@ function ChatInbox({
     e.preventDefault();
     if (!tagInput.trim() || !activeClient) return;
 
-    // Check if tag already exists
     if (activeClient.tags.includes(tagInput.trim())) {
       setTagInput('');
       return;
@@ -99,7 +113,6 @@ function ChatInbox({
 
     const updatedTags = [...activeClient.tags, tagInput.trim()];
     
-    // Call server to update tags
     try {
       await fetch('/api/clients', {
         method: 'POST',
@@ -155,7 +168,7 @@ function ChatInbox({
             <Search className="search-icon-svg" size={16} />
             <input 
               type="text" 
-              placeholder="Search chats, clients, tags..." 
+              placeholder="Search chats, tags, source..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -172,6 +185,7 @@ function ChatInbox({
               const lastMsg = client.messages.length > 0 ? client.messages[client.messages.length - 1] : null;
               const initials = client.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
               const isSelected = client.id === activeChatId;
+              const hasUnread = client.messages.some(m => m.sender === 'client' && !m.read);
 
               return (
                 <div 
@@ -179,29 +193,32 @@ function ChatInbox({
                   className={`chat-thread-item ${isSelected ? 'active' : ''}`}
                   onClick={() => setActiveChatId(client.id)}
                 >
-                  <div className="thread-avatar">
+                  <div className="thread-avatar" style={{ position: 'relative' }}>
                     {initials || <User size={18} />}
+                    {hasUnread && <div className="pulsing-gold-indicator"></div>}
                   </div>
                   
                   <div className="thread-info">
                     <div className="thread-header">
-                      <span className="thread-name">{client.name}</span>
+                      <span className="thread-name" style={{ color: hasUnread ? 'var(--brand-color)' : 'white', fontWeight: hasUnread ? '700' : '600' }}>
+                        {client.name}
+                      </span>
                       {lastMsg && (
-                        <span className="thread-time">{formatTime(lastMsg.timestamp)}</span>
+                        <span className="thread-time" style={{ color: hasUnread ? 'var(--brand-color)' : 'var(--text-muted)' }}>
+                          {formatTime(lastMsg.timestamp)}
+                        </span>
                       )}
                     </div>
-                    <div className="thread-last-msg">
+                    <div className="thread-last-msg" style={{ color: hasUnread ? 'white' : 'var(--text-secondary)' }}>
                       {lastMsg ? lastMsg.body : 'No messages logged'}
                     </div>
                     <div className="thread-footer">
                       <span className={`badge badge-${client.status.toLowerCase().replace(' ', '')}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
                         {client.status}
                       </span>
-                      {client.tags.length > 0 && (
-                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px' }}>
-                          🏷️ {client.tags[0]}
-                        </span>
-                      )}
+                      <span className="badge badge-source">
+                        {client.source || 'Manual'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -368,20 +385,63 @@ function ChatInbox({
               </select>
             </div>
 
-            {/* Client Info Details */}
+            {/* Edit Deal Value / Budget */}
+            <div>
+              <h4 className="sidebar-section-title">Deal Budget ($)</h4>
+              <input 
+                type="number"
+                className="form-control"
+                style={{ width: '100%' }}
+                value={activeClient.budget || ''}
+                placeholder="e.g. 2500"
+                onChange={async (e) => {
+                  const val = Number(e.target.value) || 0;
+                  await fetch('/api/clients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: activeClient.id, budget: val })
+                  });
+                }}
+              />
+            </div>
+
+            {/* Edit Lead Source Channel */}
+            <div>
+              <h4 className="sidebar-section-title">Lead Source Channel</h4>
+              <select 
+                className="filter-select"
+                style={{ width: '100%', padding: '10px' }}
+                value={activeClient.source || 'Manual'}
+                onChange={async (e) => {
+                  await fetch('/api/clients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: activeClient.id, source: e.target.value })
+                  });
+                }}
+              >
+                <option value="Meta Ads">Meta Ads</option>
+                <option value="Instagram">Instagram</option>
+                <option value="Organic">Organic</option>
+                <option value="WhatsApp Link">WhatsApp Link</option>
+                <option value="Manual">Manual</option>
+              </select>
+            </div>
+
+            {/* Contact Details */}
             <div>
               <h4 className="sidebar-section-title">Contact Info</h4>
               <div className="quick-details-list">
                 <div className="quick-detail-item">
-                  <div className="quick-detail-label"><Phone size={12} style={{ display: 'inline', marginRight: '6px' }} /> Phone</div>
+                  <div className="quick-detail-label">Phone</div>
                   <div className="quick-detail-value">{activeClient.phone}</div>
                 </div>
                 <div className="quick-detail-item">
-                  <div className="quick-detail-label"><Mail size={12} style={{ display: 'inline', marginRight: '6px' }} /> Email</div>
+                  <div className="quick-detail-label">Email</div>
                   <div className="quick-detail-value">{activeClient.email || '—'}</div>
                 </div>
                 <div className="quick-detail-item">
-                  <div className="quick-detail-label"><Building size={12} style={{ display: 'inline', marginRight: '6px' }} /> Company</div>
+                  <div className="quick-detail-label">Company</div>
                   <div className="quick-detail-value">{activeClient.company || '—'}</div>
                 </div>
               </div>

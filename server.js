@@ -57,7 +57,7 @@ app.get('/api/clients', async (req, res) => {
 
 app.post('/api/clients', async (req, res) => {
   try {
-    const { id, name, phone, email, company, status, tags } = req.body;
+    const { id, name, phone, email, company, status, tags, budget, source } = req.body;
     
     if (id) {
       // Update existing client
@@ -71,6 +71,8 @@ app.post('/api/clients', async (req, res) => {
           company: company !== undefined ? company : client.company,
           status: status || client.status,
           tags: tags || client.tags,
+          budget: budget !== undefined ? Number(budget) : (client.budget || 0),
+          source: source !== undefined ? source : (client.source || 'Manual'),
           updatedAt: new Date().toISOString()
         };
         await saveClient(updatedClient);
@@ -98,6 +100,8 @@ app.post('/api/clients', async (req, res) => {
         company: company || '',
         status: status || 'New Lead',
         tags: tags || [],
+        budget: budget !== undefined ? Number(budget) : 0,
+        source: source || 'Manual',
         notes: [],
         messages: [],
         createdAt: new Date().toISOString(),
@@ -294,6 +298,8 @@ app.post('/api/whatsapp/sync', async (req, res) => {
         email: '',
         company: '',
         status: 'New Lead',
+        budget: 0,
+        source: 'WhatsApp Sync',
         tags: ['WhatsApp Sync'],
         notes: [],
         messages: [newMessage],
@@ -387,6 +393,8 @@ app.post('/api/whatsapp/webhook', async (req, res) => {
             email: '',
             company: '',
             status: 'New Lead',
+            budget: 0,
+            source: 'Meta Ads',
             tags: ['Official API'],
             notes: [],
             messages: [newMessage],

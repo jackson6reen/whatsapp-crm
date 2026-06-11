@@ -39,6 +39,8 @@ function App() {
   const [newClientEmail, setNewClientEmail] = useState('');
   const [newClientCompany, setNewClientCompany] = useState('');
   const [newClientTags, setNewClientTags] = useState('');
+  const [newClientBudget, setNewClientBudget] = useState('');
+  const [newClientSource, setNewClientSource] = useState('Meta Ads');
   const [errorMessage, setErrorMessage] = useState('');
 
   // Fetch initial data
@@ -135,7 +137,9 @@ function App() {
           phone: newClientPhone,
           email: newClientEmail,
           company: newClientCompany,
-          tags: newClientTags.split(',').map(t => t.trim()).filter(t => t.length > 0)
+          tags: newClientTags.split(',').map(t => t.trim()).filter(t => t.length > 0),
+          budget: newClientBudget ? Number(newClientBudget) : 0,
+          source: newClientSource
         })
       });
       const data = await res.json();
@@ -148,6 +152,8 @@ function App() {
         setNewClientEmail('');
         setNewClientCompany('');
         setNewClientTags('');
+        setNewClientBudget('');
+        setNewClientSource('Meta Ads');
         setIsModalOpen(false);
         // Automatically switch to details or highlight
         setActiveTab('clients');
@@ -410,6 +416,33 @@ function App() {
                   value={newClientTags}
                   onChange={(e) => setNewClientTags(e.target.value)}
                 />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Deal Value / Budget ($)</label>
+                  <input 
+                    type="number" 
+                    className="form-control" 
+                    placeholder="e.g. 2500" 
+                    value={newClientBudget}
+                    onChange={(e) => setNewClientBudget(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Lead Source</label>
+                  <select 
+                    className="filter-select"
+                    style={{ width: '100%', height: '42px', marginTop: '2px' }}
+                    value={newClientSource}
+                    onChange={(e) => setNewClientSource(e.target.value)}
+                  >
+                    <option value="Meta Ads">Meta Ads</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Organic">Organic</option>
+                    <option value="WhatsApp Link">WhatsApp Link</option>
+                    <option value="Manual">Manual</option>
+                  </select>
+                </div>
               </div>
               <div className="form-actions">
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>

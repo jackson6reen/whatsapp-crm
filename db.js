@@ -22,6 +22,8 @@ const getSeedData = () => ({
       email: "alex@riveradesign.co",
       company: "Rivera Design",
       status: "New Lead",
+      budget: 2500,
+      source: "Meta Ads",
       tags: ["Design", "High Priority"],
       notes: [
         { id: "n1", content: "Inquired about branding package. Prefers WhatsApp communication.", createdAt: new Date(Date.now() - 3600000 * 2).toISOString() }
@@ -39,6 +41,8 @@ const getSeedData = () => ({
       email: "sjenkins@apexcorp.com",
       company: "Apex Corp",
       status: "Contacted",
+      budget: 8500,
+      source: "Organic",
       tags: ["Enterprise"],
       notes: [
         { id: "n2", content: "Scheduled a quick demo call for next Tuesday.", createdAt: new Date(Date.now() - 3600000 * 12).toISOString() }
@@ -58,6 +62,8 @@ const getSeedData = () => ({
       email: "marcus@chenmedia.io",
       company: "Chen Media",
       status: "Proposal",
+      budget: 4800,
+      source: "Meta Ads",
       tags: ["Video Production", "Retainer"],
       notes: [
         { id: "n3", content: "Sent retainer proposal. Waiting for review.", createdAt: new Date(Date.now() - 3600000 * 26).toISOString() }

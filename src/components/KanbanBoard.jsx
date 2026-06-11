@@ -132,6 +132,16 @@ function KanbanBoard({ clients, onUpdateStatus, onNavigate }) {
                           </div>
                         )}
 
+                        {/* Budget & Source */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--brand-color)' }}>
+                            {client.budget ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(client.budget) : '$0'}
+                          </span>
+                          <span className="badge badge-source" style={{ fontSize: '9px', padding: '1px 6px' }}>
+                            {client.source || 'Manual'}
+                          </span>
+                        </div>
+
                         <div style={{ height: '1px', background: 'var(--border-color)', margin: '10px 0' }}></div>
 
                         <div className="kanban-card-footer">
