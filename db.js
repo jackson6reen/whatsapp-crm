@@ -11,6 +11,7 @@ const useMongo = !!process.env.MONGODB_URI;
 let mongoClient = null;
 let dbInstance = null;
 let localDbCache = null;
+let connectionPromise = null;
 
 // Mock data to seed empty databases
 const getSeedData = () => ({
@@ -91,27 +92,7 @@ const getSeedData = () => ({
 
 // Establish database connection
 export const connectDB = async () => {
-  if (useMongo) {
-    if (!mongoClient) {
-      console.log("🔌 Database Mode: MongoDB Atlas Serverless");
-      mongoClient = new MongoClient(process.env.MONGODB_URI);
-      await mongoClient.connect();
-      dbInstance = mongoClient.db();
-      console.log("✅ Successfully connected to MongoDB.");
-
-      // Check if seeding is necessary
-      const clientsColl = dbInstance.collection('clients');
-      const clientCount = await clientsColl.countDocuments();
-      if (clientCount === 0) {
-        console.log("🌱 Seeding MongoDB collections with default profiles...");
-        const seeds = getSeedData();
-        await clientsColl.insertMany(seeds.clients);
-        await dbInstance.collection('quickReplies').insertMany(seeds.quickReplies);
-        await dbInstance.collection('settings').insertOne(seeds.settings);
-        console.log("🌱 Database seeding complete.");
-      }
-    }
-  } else {
+  if (!useMongo) {
     console.log("💾 Database Mode: Local JSON File db.json");
     if (!localDbCache) {
       if (!fs.existsSync(DB_PATH)) {
@@ -120,6 +101,44 @@ export const connectDB = async () => {
       }
       localDbCache = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
     }
+    return;
+  }
+
+  if (dbInstance) {
+    return; // Already connected
+  }
+
+  if (connectionPromise) {
+    return connectionPromise;
+  }
+
+  connectionPromise = (async () => {
+    console.log("🔌 Database Mode: MongoDB Atlas Serverless");
+    mongoClient = new MongoClient(process.env.MONGODB_URI);
+    await mongoClient.connect();
+    dbInstance = mongoClient.db();
+    console.log("✅ Successfully connected to MongoDB.");
+
+    // Check if seeding is necessary
+    const clientsColl = dbInstance.collection('clients');
+    const clientCount = await clientsColl.countDocuments();
+    if (clientCount === 0) {
+      console.log("🌱 Seeding MongoDB collections with default profiles...");
+      const seeds = getSeedData();
+      await clientsColl.insertMany(seeds.clients);
+      await dbInstance.collection('quickReplies').insertMany(seeds.quickReplies);
+      await dbInstance.collection('settings').insertOne(seeds.settings);
+      console.log("🌱 Database seeding complete.");
+    }
+  })();
+
+  try {
+    await connectionPromise;
+  } catch (err) {
+    connectionPromise = null;
+    mongoClient = null;
+    dbInstance = null;
+    throw err;
   }
 };
 
